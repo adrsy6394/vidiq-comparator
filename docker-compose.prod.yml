@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: vidiq-mongodb-prod
+    restart: always
+    volumes:
+      - mongo-prod-data:/data/db
+    ports:
+      - "27017:27017"
+
+  # 2. Redis Cache & Event Queues
+  redis:
+    image: redis:7-alpine
+    container_name: vidiq-redis-prod
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # 3. Qdrant Vector Search Engine
+  qdrant:
+    image: qdrant/qdrant
+    container_name: vidiq-qdrant-prod
+    restart: always
+    volumes:
+      - qdrant-prod-data:/qdrant/storage
+    ports:
+      - "6333:6333"
+
+  # 4. Express Node API Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vidiq-backend-prod
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/vidiq
+      - REDIS_URL=redis://redis:6379
+      - QDRANT_URL=http://qdrant:6333
+      # Host API key setups will be read transparently from host's environment settings
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      - INSTAGRAM_ACCESS_TOKEN=${INSTAGRAM_ACCESS_TOKEN}
+    depends_on:
+      - mongodb
+      - redis
+      - qdrant
+
+  # 5. React Web Static Frontend served by Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vidiq-frontend-prod
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo-prod-data:
+  qdrant-prod-data:
