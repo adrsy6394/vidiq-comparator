@@ -26,7 +26,7 @@ const envSchema = z.object({
   INSTAGRAM_ACCESS_TOKEN: z.string().optional(),
   MONGODB_URI: z.string().url('Invalid MONGODB_URI format'),
   QDRANT_URL: z.string().url('Invalid QDRANT_URL format'),
-  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
+  REDIS_URL: z.string().default('redis://localhost:6379'),
 });
 
 const parsed = envSchema.safeParse(process.env);
